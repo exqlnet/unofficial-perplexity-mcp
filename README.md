@@ -20,8 +20,8 @@
 - Python >= 3.10
 - `uv` 已安装（https://docs.astral.sh/uv/）
 - 非官方 SDK 依赖：
-  - 默认从同一工作区的 `../perplexity-ai` 引用（见 `pyproject.toml` 的本地路径依赖）
-  - 若你只单独拷贝/克隆本目录，请自行把依赖改为可用的 git 依赖或先安装对应包
+  - 默认通过 `pyproject.toml` 里的 **git pin 依赖**安装（见 `perplexity-api @ git+https://...@<commit>`）
+  - 因此运行环境通常需要可用的 `git` 与网络访问（受限网络环境可考虑自行改为 vendoring）
 - 你已在浏览器登录 Perplexity，并能获取 Cookies
 
 > 重要：STDIO 模式下 stdout 只能输出 MCP 协议消息。本项目所有日志都输出到 stderr，启动器使用 `uv -q` 尽量抑制 uv 自身输出。
