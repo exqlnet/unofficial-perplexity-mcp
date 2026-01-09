@@ -1,0 +1,32 @@
+{
+  "name": "@exqlnet/unofficial-perplexity-mcp",
+  "version": "0.1.0",
+  "description": "基于 Cookies 的 Perplexity 非官方 MCP Server（Python + uv，npx 启动）",
+  "license": "MIT",
+  "type": "commonjs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/exqlnet/unofficial-perplexity-mcp.git"
+  },
+  "homepage": "https://github.com/exqlnet/unofficial-perplexity-mcp",
+  "bugs": {
+    "url": "https://github.com/exqlnet/unofficial-perplexity-mcp/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "unofficial-perplexity-mcp": "bin/perplexity-unofficial-mcp.js",
+    "perplexity-unofficial-mcp": "bin/perplexity-unofficial-mcp.js"
+  },
+  "files": [
+    "bin/**",
+    "src/**",
+    "pyproject.toml",
+    "README.md",
+    "server.json"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

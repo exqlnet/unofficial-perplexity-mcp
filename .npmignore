@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+.github/
+openspec/
+tests/
+scripts/
+
+.npm-cache/
+.venv/
+uv.lock
+
