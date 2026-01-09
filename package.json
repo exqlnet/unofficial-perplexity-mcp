@@ -1,6 +1,6 @@
 {
-  "name": "@exqlnet/unofficial-perplexity-mcp",
-  "version": "0.1.1",
+  "name": "perplexity-unofficial-mcp",
+  "version": "0.1.2",
   "description": "基于 Cookies 的 Perplexity 非官方 MCP Server（Python + uv，npx 启动）",
   "license": "MIT",
   "type": "commonjs",
