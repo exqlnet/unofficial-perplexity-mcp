@@ -10,7 +10,8 @@ class TestStdioIntegration(unittest.TestCase):
     def test_initialize_and_tools_list(self) -> None:
         repo_root = Path(__file__).resolve().parents[1]
         env = os.environ.copy()
-        env["PERPLEXITY_COOKIES_JSON"] = '{"x":"y"}'
+        env["PERPLEXITY_CSRF_TOKEN"] = "csrf"
+        env["PERPLEXITY_SESSION_TOKEN"] = "session"
         env["PYTHONPATH"] = str(repo_root / "src")
 
         proc = subprocess.Popen(
@@ -54,12 +55,14 @@ class TestStdioIntegration(unittest.TestCase):
         self.assertIn("tools", parsed[1]["result"])
 
         # stderr 允许有日志，但不应包含明文 cookies（这里只做最小断言）
-        self.assertNotIn('{"x":"y"}', stderr)
+        self.assertNotIn("csrf", stderr)
+        self.assertNotIn("session", stderr)
 
     def test_unknown_tool_is_tool_error(self) -> None:
         repo_root = Path(__file__).resolve().parents[1]
         env = os.environ.copy()
-        env["PERPLEXITY_COOKIES_JSON"] = '{"x":"y"}'
+        env["PERPLEXITY_CSRF_TOKEN"] = "csrf"
+        env["PERPLEXITY_SESSION_TOKEN"] = "session"
         env["PYTHONPATH"] = str(repo_root / "src")
 
         proc = subprocess.Popen(
@@ -105,4 +108,3 @@ class TestStdioIntegration(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

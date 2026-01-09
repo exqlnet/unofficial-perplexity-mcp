@@ -1,4 +1,3 @@
-import json
 import os
 from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Optional
@@ -26,33 +25,28 @@ def _parse_timeout_ms(value: Optional[str]) -> int:
     return timeout_ms
 
 
-def _load_cookies_from_json(value: str) -> Dict[str, str]:
-    try:
-        data = json.loads(value)
-    except json.JSONDecodeError as exc:
-        raise ConfigError("PERPLEXITY_COOKIES_JSON 不是合法的 JSON") from exc
-    if not isinstance(data, dict):
-        raise ConfigError("PERPLEXITY_COOKIES_JSON 必须是对象（键值对）")
+def _load_cookies_from_env(e: Mapping[str, str]) -> Dict[str, str]:
+    csrf = (e.get("PERPLEXITY_CSRF_TOKEN") or "").strip()
+    session = (e.get("PERPLEXITY_SESSION_TOKEN") or "").strip()
 
-    cookies: Dict[str, str] = {}
-    for key, cookie_value in data.items():
-        if not isinstance(key, str) or not key.strip():
-            raise ConfigError("PERPLEXITY_COOKIES_JSON 的键必须是非空字符串")
-        if not isinstance(cookie_value, str) or not cookie_value.strip():
-            raise ConfigError(f"PERPLEXITY_COOKIES_JSON 中 {key!r} 的值必须是非空字符串")
-        cookies[key] = cookie_value
-    if not cookies:
-        raise ConfigError("PERPLEXITY_COOKIES_JSON 不能为空对象")
-    return cookies
+    if csrf and session:
+        return {
+            "next-auth.csrf-token": csrf,
+            "next-auth.session-token": session,
+        }
 
+    # 破坏性变更：旧入口已移除，但为了可诊断性，若检测到旧变量仍存在则给出迁移提示
+    if e.get("PERPLEXITY_COOKIES_JSON") or e.get("PERPLEXITY_COOKIES_PATH"):
+        raise ConfigError(
+            "已移除 PERPLEXITY_COOKIES_JSON / PERPLEXITY_COOKIES_PATH；请改用 "
+            "PERPLEXITY_CSRF_TOKEN 与 PERPLEXITY_SESSION_TOKEN"
+        )
 
-def _load_cookies_from_path(path: str) -> Dict[str, str]:
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            content = f.read()
-    except OSError as exc:
-        raise ConfigError("PERPLEXITY_COOKIES_PATH 指向的文件无法读取") from exc
-    return _load_cookies_from_json(content)
+    if not csrf and not session:
+        raise ConfigError("必须提供 PERPLEXITY_CSRF_TOKEN 与 PERPLEXITY_SESSION_TOKEN")
+    if not csrf:
+        raise ConfigError("缺少 PERPLEXITY_CSRF_TOKEN")
+    raise ConfigError("缺少 PERPLEXITY_SESSION_TOKEN")
 
 
 def load_config(env: Optional[Mapping[str, str]] = None) -> AppConfig:
@@ -60,23 +54,13 @@ def load_config(env: Optional[Mapping[str, str]] = None) -> AppConfig:
     从环境变量加载配置。
 
     已确认约定：
-    - PERPLEXITY_COOKIES_JSON：必选
+    - PERPLEXITY_CSRF_TOKEN：必选
+    - PERPLEXITY_SESSION_TOKEN：必选
     - PERPLEXITY_TIMEOUT_MS：可选
-
-    可选兼容：
-    - PERPLEXITY_COOKIES_PATH：用于不便传长 JSON 的环境
     """
     e = dict(env) if env is not None else os.environ
 
-    cookies_json = e.get("PERPLEXITY_COOKIES_JSON")
-    cookies_path = e.get("PERPLEXITY_COOKIES_PATH")
-
-    if cookies_json:
-        cookies = _load_cookies_from_json(cookies_json)
-    elif cookies_path:
-        cookies = _load_cookies_from_path(cookies_path)
-    else:
-        raise ConfigError("必须提供 PERPLEXITY_COOKIES_JSON（或可选的 PERPLEXITY_COOKIES_PATH）")
+    cookies = _load_cookies_from_env(e)
 
     timeout_ms = _parse_timeout_ms(e.get("PERPLEXITY_TIMEOUT_MS"))
     return AppConfig(cookies=cookies, timeout_ms=timeout_ms)
@@ -88,9 +72,10 @@ def redact_env(env: Mapping[str, str]) -> Dict[str, Any]:
     """
     result: Dict[str, Any] = {}
     for k, v in env.items():
-        if k in {"PERPLEXITY_COOKIES_JSON"}:
+        if k in {"PERPLEXITY_CSRF_TOKEN", "PERPLEXITY_SESSION_TOKEN"}:
+            result[k] = "***REDACTED***"
+        elif k in {"PERPLEXITY_COOKIES_JSON", "PERPLEXITY_COOKIES_PATH"}:
             result[k] = "***REDACTED***"
         else:
             result[k] = v
     return result
-

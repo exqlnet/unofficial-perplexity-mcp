@@ -34,31 +34,28 @@
    - `next-auth.csrf-token`
    - `next-auth.session-token`
 
-### 通过 JSON 传入 Cookies（已确认方式）
+### 通过两个环境变量传入 Cookies（推荐方式）
 
-本项目默认使用环境变量 `PERPLEXITY_COOKIES_JSON` 注入 Cookies，格式为 JSON 字符串：
+本项目默认使用两个环境变量注入 Cookies：
 
-```json
-{"next-auth.csrf-token":"<你的值>","next-auth.session-token":"<你的值>"}
-```
+- `PERPLEXITY_CSRF_TOKEN`：对应 `next-auth.csrf-token`
+- `PERPLEXITY_SESSION_TOKEN`：对应 `next-auth.session-token`
 
-注意：在 MCP 客户端配置文件（JSON）里写环境变量时，字符串内部的引号需要转义（见下方示例）。
-
-可选（兼容）：如果你不想在配置里写长字符串，也可用 `PERPLEXITY_COOKIES_PATH` 指向一个 JSON 文件（内容同上）。
+注意：不要把 token 写进仓库或公开渠道；建议通过本机环境变量或密钥管理注入。
 
 ## 安装与启动（推荐：uv）
 
 本项目不再提供或依赖 `npx` 启动方式。推荐使用 `uv` 直接运行（由 `uv` 负责依赖解析与运行）。
 
-如果你需要把它接入 MCP 客户端，推荐使用 `uv run --project <ABS_PATH_TO_REPO>` 的形式启动，这样客户端在任意工作目录下都能启动该 Server。
+如果你需要把它接入 MCP 客户端，推荐使用“从 GitHub 仓库地址启动”的形式（无需本地 clone）。
 
 ## MCP 快速配置（JSON）
 
-以下示例中请将 `<ABS_PATH_TO_REPO>` 替换为本仓库 `unofficial-perplexity-mcp/` 的**绝对路径**。
+以下示例默认使用主分支 `main`。生产/团队环境建议 pin 到 tag 或 commit 以保证可复现。
 
 ### Cursor / Claude Desktop / Windsurf（mcpServers 格式）
 
-#### 方式：使用 uv 启动（推荐）
+#### 方式：使用 uv 从 GitHub 启动（推荐）
 
 ```json
 {
@@ -67,14 +64,15 @@
       "command": "uv",
       "args": [
         "-q",
+        "tool",
         "run",
-        "--project",
-        "<ABS_PATH_TO_REPO>",
-        "--no-editable",
+        "--from",
+        "git+https://github.com/exqlnet/unofficial-perplexity-mcp.git@main",
         "perplexity-unofficial-mcp"
       ],
       "env": {
-        "PERPLEXITY_COOKIES_JSON": "{\"next-auth.csrf-token\":\"<csrf>\",\"next-auth.session-token\":\"<session>\"}",
+        "PERPLEXITY_CSRF_TOKEN": "<csrf>",
+        "PERPLEXITY_SESSION_TOKEN": "<session>",
         "UV_NO_PROGRESS": "1",
         "UV_COLOR": "never"
       }
@@ -85,7 +83,7 @@
 
 ### VS Code（.vscode/mcp.json，servers 格式）
 
-#### 方式：使用 uv 启动（推荐）
+#### 方式：使用 uv 从 GitHub 启动（推荐）
 
 ```json
 {
@@ -95,14 +93,15 @@
       "command": "uv",
       "args": [
         "-q",
+        "tool",
         "run",
-        "--project",
-        "<ABS_PATH_TO_REPO>",
-        "--no-editable",
+        "--from",
+        "git+https://github.com/exqlnet/unofficial-perplexity-mcp.git@main",
         "perplexity-unofficial-mcp"
       ],
       "env": {
-        "PERPLEXITY_COOKIES_JSON": "{\"next-auth.csrf-token\":\"<csrf>\",\"next-auth.session-token\":\"<session>\"}",
+        "PERPLEXITY_CSRF_TOKEN": "<csrf>",
+        "PERPLEXITY_SESSION_TOKEN": "<session>",
         "UV_NO_PROGRESS": "1",
         "UV_COLOR": "never"
       }
@@ -139,8 +138,9 @@
 ## 排错
 
 - 启动报错 `未找到 uv`：安装 uv 后重试。
-- 提示 Cookies 无效/请求失败：通常是会话过期，重新获取 Cookies 并更新 `PERPLEXITY_COOKIES_JSON`。
+- 提示 Cookies 无效/请求失败：通常是会话过期，重新获取 Cookies 并更新 `PERPLEXITY_CSRF_TOKEN` / `PERPLEXITY_SESSION_TOKEN`。
 - MCP 客户端初始化失败：检查是否有任何非协议输出写入 stdout；本项目日志写入 stderr，且推荐使用 `uv -q` 并设置 `UV_NO_PROGRESS=1`，仍失败时请检查你的外层启动命令是否会向 stdout 输出额外内容。
+ - GitHub 拉取失败：检查网络与 git 可用性；受限环境可改为本地 clone 后再使用本地方式启动（见下文开发说明）。
 
 ## 开发说明
 
@@ -154,4 +154,4 @@
 ## 安全提示
 
 - 不要把真实 Cookies 提交到 git、截图或粘贴到公开渠道。
-- 建议通过密钥管理（或本机环境变量注入）提供 `PERPLEXITY_COOKIES_JSON`。
+- 建议通过密钥管理（或本机环境变量注入）提供 `PERPLEXITY_CSRF_TOKEN` / `PERPLEXITY_SESSION_TOKEN`。
