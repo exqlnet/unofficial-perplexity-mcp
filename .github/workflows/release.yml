@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*.*.*"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -35,6 +36,10 @@ jobs:
         run: |
           PYTHONPATH=src python -m unittest discover -s tests -v
 
+      - name: Cleanup build artifacts
+        run: |
+          find src -type d -name "__pycache__" -prune -exec rm -rf {} +
+
       - name: npm pack (dry run)
         run: npm pack --dry-run
 
@@ -42,4 +47,3 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public
-
