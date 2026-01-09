@@ -54,7 +54,7 @@
 
 发布成功后可直接使用：
 
-- `npx -y perplexity-unofficial-mcp`
+- `npx -y --package @exqlnet/unofficial-perplexity-mcp perplexity-unofficial-mcp`
 
 > 如果你的 MCP 客户端对 stdout 噪音非常敏感，可尝试将 `-y` 改为 `-yq`（更安静）。
 
@@ -75,7 +75,7 @@
   "mcpServers": {
     "perplexity_unofficial": {
       "command": "npx",
-      "args": ["-y", "perplexity-unofficial-mcp"],
+      "args": ["-y", "--package", "@exqlnet/unofficial-perplexity-mcp", "perplexity-unofficial-mcp"],
       "env": {
         "PERPLEXITY_COOKIES_JSON": "{\"next-auth.csrf-token\":\"<csrf>\",\"next-auth.session-token\":\"<session>\"}"
       }
@@ -115,7 +115,7 @@
     "perplexity_unofficial": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "perplexity-unofficial-mcp"],
+      "args": ["-y", "--package", "@exqlnet/unofficial-perplexity-mcp", "perplexity-unofficial-mcp"],
       "env": {
         "PERPLEXITY_COOKIES_JSON": "{\"next-auth.csrf-token\":\"<csrf>\",\"next-auth.session-token\":\"<session>\"}"
       }
