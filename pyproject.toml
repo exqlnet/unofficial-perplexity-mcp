@@ -9,13 +9,16 @@ description = "基于 Cookies 的 Perplexity 非官方 MCP Server（STDIO）"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-  # 说明：为保证 npm 分发后仍可安装，这里使用 git 依赖并 pin 到 commit。
+  # 说明：为保证在不同环境中仍可安装，这里使用 git 依赖并 pin 到 commit。
   # 若上游仓库结构或名称变更，请更新此依赖来源。
   "perplexity-api @ git+https://github.com/helallao/perplexity-ai.git@2a38afe41e36cf05bbd8c8c5bfb9cad72fa24115",
 ]
 
 [project.scripts]
 perplexity-unofficial-mcp = "perplexity_unofficial_mcp.cli:main"
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/perplexity_unofficial_mcp"]
@@ -25,7 +28,4 @@ include = [
   "src/perplexity_unofficial_mcp/**",
   "README.md",
   "pyproject.toml",
-  "package.json",
-  "bin/**",
-  "server.json",
 ]
