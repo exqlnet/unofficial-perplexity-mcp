@@ -177,6 +177,26 @@
 - 提示 Cookies 无效/请求失败：通常是会话过期，重新获取 Cookies 并更新 `PERPLEXITY_COOKIES_JSON`。
 - MCP 客户端初始化失败：检查是否有任何非协议输出写入 stdout；本项目日志写入 stderr，且启动器使用 `uv -q`，仍失败时请检查你的外层启动命令是否会向 stdout 输出额外内容。
 
+## 维护者：发布到 npm（GitHub Actions）
+
+本仓库使用 tag 触发发布：推送 `vX.Y.Z` 后，GitHub Actions 会自动 `npm publish`。
+
+### 必需条件
+
+- GitHub 仓库已配置 Secret：`NPM_TOKEN`
+- `NPM_TOKEN` 必须满足 npm 的 2FA 策略要求：
+  - 如果你的账号/组织启用了“发布必须 2FA”，请使用 **Automation token**，或 **Granular access token** 并启用“bypass 2FA”权限。
+  - 否则 Actions 会报错：`E403 ... Two-factor authentication ... bypass 2fa enabled is required`
+
+### 发布步骤
+
+1. 同步版本号（必须一致）：
+   - `package.json`
+   - `pyproject.toml`
+   - `src/perplexity_unofficial_mcp/version.py`
+2. 合并到 `main` 后创建并推送 tag：`vX.Y.Z`
+3. 在 GitHub Actions 查看 `Release` 工作流是否成功
+
 ## 开发说明
 
 ### 直接运行（不走 npx）

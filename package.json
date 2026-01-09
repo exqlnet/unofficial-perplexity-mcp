@@ -6,7 +6,7 @@
   "type": "commonjs",
   "repository": {
     "type": "git",
-    "url": "https://github.com/exqlnet/unofficial-perplexity-mcp.git"
+    "url": "git+https://github.com/exqlnet/unofficial-perplexity-mcp.git"
   },
   "homepage": "https://github.com/exqlnet/unofficial-perplexity-mcp",
   "bugs": {
