@@ -114,7 +114,7 @@
 
 ### perplexity_ask
 
-- 入参：`messages: [{ role, content }, ...]`，可选 `mode`、`model`
+- 入参：`query`（字符串），可选 `mode`、`model`
 - 行为：
   - 支持显式传入 `mode`/`model` 覆盖默认行为
   - 当提供 Cookies（`PERPLEXITY_CSRF_TOKEN` + `PERPLEXITY_SESSION_TOKEN`）且未显式指定 `mode` 时：默认 `mode="pro"`
@@ -123,15 +123,16 @@
 
 ### perplexity_research
 
-- 入参：`messages`，可选 `strip_thinking`、`mode`、`model`
+- 入参：`query`（字符串），可选 `strip_thinking`、`mode`、`model`
 - 行为：
   - 默认 `mode="deep research"`（专用语义）
   - 支持显式传入 `mode`/`model` 覆盖默认行为
   - 若你将 `mode` 覆盖为 `pro` 且未显式指定 `model`，在提供 Cookies 时会默认 `model="gpt-5.2"`
+  - 注意：这是重型调用，耗时更长；仅在必要时使用，优先 ask/search
 
 ### perplexity_reason
 
-- 入参：`messages`，可选 `strip_thinking`、`mode`、`model`
+- 入参：`query`（字符串），可选 `strip_thinking`、`mode`、`model`
 - 行为：
   - 默认 `mode="reasoning"`（专用语义）
   - 支持显式传入 `mode`/`model` 覆盖默认行为
@@ -139,7 +140,7 @@
 
 ### perplexity_search
 
-- 入参：`query`（并兼容官方字段 `max_results/max_tokens_per_page/country`，当前实现会忽略这些字段），可选 `mode`、`model`
+- 入参：`query`（字符串），可选 `mode`、`model`
 - 行为：
   - 当前实现返回“回答文本”（并尽量在 `structuredContent.chunks` 附带结构化片段）
   - 当提供 Cookies 且未显式指定 `mode` 时：默认 `mode="pro"`
@@ -149,12 +150,14 @@
 
 > 提示：`mode` 常见值包括 `auto` / `pro` / `reasoning` / `deep research`；`model` 的可用值由上游 `perplexity-ai` SDK 与 Perplexity 服务端共同决定，可能随时间变化，如遇报错请根据错误信息调整。
 
+> 重要：本 MCP 不再支持 `messages[]` 入参；如果你的调用方仍传 `messages`，会返回工具级错误并提示改用 `query`。
+
 ## 排错
 
 - 启动报错 `未找到 uv`：安装 uv 后重试。
 - 提示 Cookies 无效/请求失败：通常是会话过期，重新获取 Cookies 并更新 `PERPLEXITY_CSRF_TOKEN` / `PERPLEXITY_SESSION_TOKEN`。
 - MCP 客户端初始化失败：检查是否有任何非协议输出写入 stdout；本项目日志写入 stderr，且推荐使用 `uv -q` 并设置 `UV_NO_PROGRESS=1`，仍失败时请检查你的外层启动命令是否会向 stdout 输出额外内容。
- - GitHub 拉取失败：检查网络与 git 可用性；受限环境可改为本地 clone 后再使用本地方式启动（见下文开发说明）。
+- GitHub 拉取失败：检查网络与 git 可用性；受限环境可改为本地 clone 后再使用本地方式启动（见下文开发说明）。
 
 ## 开发说明
 

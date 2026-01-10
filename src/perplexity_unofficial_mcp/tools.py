@@ -7,7 +7,6 @@ from .config import AppConfig
 from .perplexity_adapter import (
     PerplexityCallError,
     call_perplexity_search,
-    messages_to_query,
     strip_thinking_tokens,
 )
 
@@ -29,57 +28,32 @@ def list_tools() -> List[JsonObject]:
         ToolDef(
             name="perplexity_ask",
             title="Ask Perplexity",
-            description="对齐官方 Perplexity MCP：基于 messages[] 提问并返回回答文本。",
+            description="对齐官方 Perplexity MCP：输入 query 字符串并返回回答文本。",
             input_schema={
                 "type": "object",
                 "properties": {
-                    "messages": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "role": {"type": "string"},
-                                "content": {"type": "string"},
-                            },
-                            "required": ["role", "content"],
-                            "additionalProperties": True,
-                        },
-                        "minItems": 1,
-                    }
-                    ,
+                    "query": {"type": "string"},
                     "mode": {"type": "string"},
                     "model": {"type": "string"},
                 },
-                "required": ["messages"],
+                "required": ["query"],
                 "additionalProperties": True,
             },
             annotations={"readOnlyHint": True, "openWorldHint": True},
         ),
         ToolDef(
             name="perplexity_research",
-            title="Deep Research",
-            description="对齐官方 Perplexity MCP：深度研究（内部映射为非官方 SDK 的 deep research 模式）。",
+            title="Deep Research（重型）",
+            description="对齐官方 Perplexity MCP：深度研究（重型调用，耗时更长；仅在必要时使用，优先 ask/search）。",
             input_schema={
                 "type": "object",
                 "properties": {
-                    "messages": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "role": {"type": "string"},
-                                "content": {"type": "string"},
-                            },
-                            "required": ["role", "content"],
-                            "additionalProperties": True,
-                        },
-                        "minItems": 1,
-                    },
+                    "query": {"type": "string"},
                     "strip_thinking": {"type": "boolean"},
                     "mode": {"type": "string"},
                     "model": {"type": "string"},
                 },
-                "required": ["messages"],
+                "required": ["query"],
                 "additionalProperties": True,
             },
             annotations={"readOnlyHint": True, "openWorldHint": True},
@@ -87,28 +61,16 @@ def list_tools() -> List[JsonObject]:
         ToolDef(
             name="perplexity_reason",
             title="Advanced Reasoning",
-            description="对齐官方 Perplexity MCP：推理（内部映射为非官方 SDK 的 reasoning 模式）。",
+            description="对齐官方 Perplexity MCP：推理（默认 reasoning；也可显式指定 mode/model 覆盖）。",
             input_schema={
                 "type": "object",
                 "properties": {
-                    "messages": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "role": {"type": "string"},
-                                "content": {"type": "string"},
-                            },
-                            "required": ["role", "content"],
-                            "additionalProperties": True,
-                        },
-                        "minItems": 1,
-                    },
+                    "query": {"type": "string"},
                     "strip_thinking": {"type": "boolean"},
                     "mode": {"type": "string"},
                     "model": {"type": "string"},
                 },
-                "required": ["messages"],
+                "required": ["query"],
                 "additionalProperties": True,
             },
             annotations={"readOnlyHint": True, "openWorldHint": True},
@@ -121,9 +83,6 @@ def list_tools() -> List[JsonObject]:
                 "type": "object",
                 "properties": {
                     "query": {"type": "string"},
-                    "max_results": {"type": "number"},
-                    "max_tokens_per_page": {"type": "number"},
-                    "country": {"type": "string"},
                     "mode": {"type": "string"},
                     "model": {"type": "string"},
                 },
@@ -176,6 +135,13 @@ def _read_optional_str(arguments: Mapping[str, Any], key: str) -> Tuple[Optional
     return v, None
 
 
+def _read_required_query(arguments: Mapping[str, Any]) -> Tuple[Optional[str], Optional[str]]:
+    query = arguments.get("query")
+    if not isinstance(query, str) or not query.strip():
+        return None, "参数错误：query 必须是非空字符串"
+    return query.strip(), None
+
+
 def _cookies_provided(config: AppConfig) -> bool:
     cookies = getattr(config, "cookies", {})
     if not isinstance(cookies, Mapping):
@@ -222,18 +188,20 @@ def _resolve_mode_model(config: AppConfig, tool_name: str, arguments: Mapping[st
 
 def call_tool(config: AppConfig, name: str, arguments: Mapping[str, Any]) -> JsonObject:
     try:
+        if "messages" in arguments:
+            return _tool_result_text("参数错误：已不再支持 messages，请改用 query 字符串入参", is_error=True)
+
         effective_mode, effective_model, mode_model_err = _resolve_mode_model(config, name, arguments)
         if mode_model_err:
             return _tool_result_text(mode_model_err, is_error=True)
 
         if name == "perplexity_ask":
-            messages = arguments.get("messages")
-            if not isinstance(messages, list):
-                return _tool_result_text("参数错误：messages 必须是数组", is_error=True)
-            query = messages_to_query(messages)
+            query, query_err = _read_required_query(arguments)
+            if query_err:
+                return _tool_result_text(query_err, is_error=True)
             resp = call_perplexity_search(
                 config,
-                query=query,
+                query=query or "",
                 mode=effective_mode or "auto",
                 model=effective_model,
                 sources=["web"],
@@ -244,14 +212,13 @@ def call_tool(config: AppConfig, name: str, arguments: Mapping[str, Any]) -> Jso
             return _tool_result_text(resp.answer, structured=structured)
 
         if name == "perplexity_research":
-            messages = arguments.get("messages")
-            if not isinstance(messages, list):
-                return _tool_result_text("参数错误：messages 必须是数组", is_error=True)
             strip = bool(arguments.get("strip_thinking", False))
-            query = messages_to_query(messages)
+            query, query_err = _read_required_query(arguments)
+            if query_err:
+                return _tool_result_text(query_err, is_error=True)
             resp = call_perplexity_search(
                 config,
-                query=query,
+                query=query or "",
                 mode=effective_mode or "deep research",
                 model=effective_model,
                 sources=["web"],
@@ -263,14 +230,13 @@ def call_tool(config: AppConfig, name: str, arguments: Mapping[str, Any]) -> Jso
             return _tool_result_text(text, structured=structured)
 
         if name == "perplexity_reason":
-            messages = arguments.get("messages")
-            if not isinstance(messages, list):
-                return _tool_result_text("参数错误：messages 必须是数组", is_error=True)
             strip = bool(arguments.get("strip_thinking", False))
-            query = messages_to_query(messages)
+            query, query_err = _read_required_query(arguments)
+            if query_err:
+                return _tool_result_text(query_err, is_error=True)
             resp = call_perplexity_search(
                 config,
-                query=query,
+                query=query or "",
                 mode=effective_mode or "reasoning",
                 model=effective_model,
                 sources=["web"],
@@ -282,12 +248,12 @@ def call_tool(config: AppConfig, name: str, arguments: Mapping[str, Any]) -> Jso
             return _tool_result_text(text, structured=structured)
 
         if name == "perplexity_search":
-            query = arguments.get("query")
-            if not isinstance(query, str) or not query.strip():
-                return _tool_result_text("参数错误：query 必须是非空字符串", is_error=True)
+            query, query_err = _read_required_query(arguments)
+            if query_err:
+                return _tool_result_text(query_err, is_error=True)
             resp = call_perplexity_search(
                 config,
-                query=query.strip(),
+                query=query or "",
                 mode=effective_mode or "auto",
                 model=effective_model,
                 sources=["web"],

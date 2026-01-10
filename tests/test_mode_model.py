@@ -31,7 +31,7 @@ class TestModeModel(unittest.TestCase):
             res = tools_mod.call_tool(
                 cfg,
                 "perplexity_ask",
-                {"messages": [{"role": "user", "content": "hi"}]},
+                {"query": "hi"},
             )
             self.assertFalse(res.get("isError"))
             self.assertEqual(calls[0]["mode"], "pro")
@@ -83,7 +83,7 @@ class TestModeModel(unittest.TestCase):
             res = tools_mod.call_tool(
                 cfg,
                 "perplexity_research",
-                {"messages": [{"role": "user", "content": "topic"}]},
+                {"query": "topic"},
             )
             self.assertFalse(res.get("isError"))
             self.assertEqual(calls[0]["mode"], "deep research")
@@ -111,7 +111,7 @@ class TestModeModel(unittest.TestCase):
             res = tools_mod.call_tool(
                 cfg,
                 "perplexity_reason",
-                {"messages": [{"role": "user", "content": "why"}], "mode": "pro"},
+                {"query": "why", "mode": "pro"},
             )
             self.assertFalse(res.get("isError"))
             self.assertEqual(calls[0]["mode"], "pro")
@@ -130,11 +130,25 @@ class TestModeModel(unittest.TestCase):
         res = tools_mod.call_tool(
             cfg,
             "perplexity_ask",
-            {"messages": [{"role": "user", "content": "hi"}], "mode": 123},
+            {"query": "hi", "mode": 123},
+        )
+        self.assertTrue(res.get("isError"))
+
+    def test_messages_is_rejected(self) -> None:
+        cfg = AppConfig(
+            cookies={
+                "next-auth.csrf-token": "csrf",
+                "next-auth.session-token": "session",
+            },
+            timeout_ms=300_000,
+        )
+        res = tools_mod.call_tool(
+            cfg,
+            "perplexity_ask",
+            {"messages": [{"role": "user", "content": "hi"}]},
         )
         self.assertTrue(res.get("isError"))
 
 
 if __name__ == "__main__":
     unittest.main()
-
