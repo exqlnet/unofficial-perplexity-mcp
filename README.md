@@ -114,26 +114,40 @@
 
 ### perplexity_ask
 
-- 入参：`messages: [{ role, content }, ...]`
-- 行为：默认映射为非官方 SDK 的 `mode="pro"`（更接近官方 `sonar-pro` 的语义）
+- 入参：`messages: [{ role, content }, ...]`，可选 `mode`、`model`
+- 行为：
+  - 支持显式传入 `mode`/`model` 覆盖默认行为
+  - 当提供 Cookies（`PERPLEXITY_CSRF_TOKEN` + `PERPLEXITY_SESSION_TOKEN`）且未显式指定 `mode` 时：默认 `mode="pro"`
+  - 当最终 `mode="pro"` 且未显式指定 `model` 时：默认 `model="gpt-5.2"`
 - 出参：`content`（文本）+ `structuredContent.response`（文本）+ 可选 `structuredContent.chunks`
 
 ### perplexity_research
 
-- 入参：`messages`，可选 `strip_thinking`
-- 行为：映射为 `mode="deep research"`
+- 入参：`messages`，可选 `strip_thinking`、`mode`、`model`
+- 行为：
+  - 默认 `mode="deep research"`（专用语义）
+  - 支持显式传入 `mode`/`model` 覆盖默认行为
+  - 若你将 `mode` 覆盖为 `pro` 且未显式指定 `model`，在提供 Cookies 时会默认 `model="gpt-5.2"`
 
 ### perplexity_reason
 
-- 入参：`messages`，可选 `strip_thinking`
-- 行为：映射为 `mode="reasoning"`
+- 入参：`messages`，可选 `strip_thinking`、`mode`、`model`
+- 行为：
+  - 默认 `mode="reasoning"`（专用语义）
+  - 支持显式传入 `mode`/`model` 覆盖默认行为
+  - 若你将 `mode` 覆盖为 `pro` 且未显式指定 `model`，在提供 Cookies 时会默认 `model="gpt-5.2"`
 
 ### perplexity_search
 
-- 入参：`query`（并兼容官方字段 `max_results/max_tokens_per_page/country`，当前实现会忽略这些字段）
-- 行为：当前实现返回“回答文本”（并尽量在 `structuredContent.chunks` 附带结构化片段）
+- 入参：`query`（并兼容官方字段 `max_results/max_tokens_per_page/country`，当前实现会忽略这些字段），可选 `mode`、`model`
+- 行为：
+  - 当前实现返回“回答文本”（并尽量在 `structuredContent.chunks` 附带结构化片段）
+  - 当提供 Cookies 且未显式指定 `mode` 时：默认 `mode="pro"`
+  - 当最终 `mode="pro"` 且未显式指定 `model` 时：默认 `model="gpt-5.2"`
 
 > 说明：官方 `perplexity_search` 语义是“返回搜索结果列表”；非官方 SDK 不一定稳定提供同等结构，因此本实现优先保证可用性与对齐接口形状。
+
+> 提示：`mode` 常见值包括 `auto` / `pro` / `reasoning` / `deep research`；`model` 的可用值由上游 `perplexity-ai` SDK 与 Perplexity 服务端共同决定，可能随时间变化，如遇报错请根据错误信息调整。
 
 ## 排错
 
