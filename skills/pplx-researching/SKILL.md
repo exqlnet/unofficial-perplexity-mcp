@@ -1,15 +1,15 @@
 ---
-name: deep-researching
+name: pplx-researching
 description: 像研究助手一样做信息调研：检索→阅读→综合→对照核验，必要时再做系统性调研。用于需要“查资料/核验事实/做研究梳理或报告”的问题。
 metadata:
   short-description: 信息调研助手
 ---
 
-# deep-researching
+# pplx-researching
 
 ## 定位与描述
 
-**deep-researching** 是一个“研究助手型”工作流：像研究助手一样做信息调研——**检索 → 阅读 → 综合 → 对照核验**，必要时再升级到更系统的调研方式。用于需要“查资料 / 核验事实 / 做研究梳理或报告”的问题。
+**pplx-researching** 是一个“研究助手型”工作流：像研究助手一样做信息调研——**检索 → 阅读 → 综合 → 对照核验**，必要时再升级到更系统的调研方式。用于需要“查资料 / 核验事实 / 做研究梳理或报告”的问题。
 
 本 skill 面向本仓库提供的 Perplexity MCP 工具：
 
