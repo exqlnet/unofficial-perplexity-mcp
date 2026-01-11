@@ -114,43 +114,40 @@
 
 ### perplexity_ask
 
-- 入参：`query`（字符串），可选 `mode`、`model`
+- 入参：`query`（字符串）
 - 行为：
-  - 支持显式传入 `mode`/`model` 覆盖默认行为
-  - 当提供 Cookies（`PERPLEXITY_CSRF_TOKEN` + `PERPLEXITY_SESSION_TOKEN`）且未显式指定 `mode` 时：默认 `mode="pro"`
-  - 当最终 `mode="pro"` 且未显式指定 `model` 时：默认 `model="gpt-5.2"`
+  - 为避免调用方误传导致行为不可预测：本 MCP **已禁用外部 `mode` / `model` 入参**
+  - 服务端会按内部默认策略选择模式（例如有 Cookies 时倾向使用 pro，并默认使用 `gpt-5.2`）
+  - 请避免频繁调用；尽量将多个子问题合并到一次 query / 一次 perplexity_search 中查清楚
 - 出参：`content`（文本）+ `structuredContent.response`（文本）+ 可选 `structuredContent.chunks`
 
 ### perplexity_research
 
-- 入参：`query`（字符串），可选 `strip_thinking`、`mode`、`model`
+- 入参：`query`（字符串），可选 `strip_thinking`
 - 行为：
-  - 默认 `mode="deep research"`（专用语义）
-  - 支持显式传入 `mode`/`model` 覆盖默认行为
-  - 若你将 `mode` 覆盖为 `pro` 且未显式指定 `model`，在提供 Cookies 时会默认 `model="gpt-5.2"`
+  - 默认 deep research（专用语义）
+  - 本 MCP 已禁用外部 `mode` / `model` 入参
   - 注意：这是重型调用，耗时更长；仅在必要时使用，优先 ask/search
 
 ### perplexity_reason
 
-- 入参：`query`（字符串），可选 `strip_thinking`、`mode`、`model`
+- 入参：`query`（字符串），可选 `strip_thinking`
 - 行为：
-  - 默认 `mode="reasoning"`（专用语义）
-  - 支持显式传入 `mode`/`model` 覆盖默认行为
-  - 若你将 `mode` 覆盖为 `pro` 且未显式指定 `model`，在提供 Cookies 时会默认 `model="gpt-5.2"`
+  - 默认 reasoning（专用语义）
+  - 本 MCP 已禁用外部 `mode` / `model` 入参
 
 ### perplexity_search
 
-- 入参：`query`（字符串），可选 `mode`、`model`
+- 入参：`query`（字符串）
 - 行为：
   - 当前实现返回“回答文本”（并尽量在 `structuredContent.chunks` 附带结构化片段）
-  - 当提供 Cookies 且未显式指定 `mode` 时：默认 `mode="pro"`
-  - 当最终 `mode="pro"` 且未显式指定 `model` 时：默认 `model="gpt-5.2"`
+  - 本 MCP 已禁用外部 `mode` / `model` 入参；服务端会按内部默认策略选择模式
+  - 请避免频繁调用；尽量把要查的点写进一次 query（例如用编号列出多个子问题），一次 search 查清楚
 
 > 说明：官方 `perplexity_search` 语义是“返回搜索结果列表”；非官方 SDK 不一定稳定提供同等结构，因此本实现优先保证可用性与对齐接口形状。
 
-> 提示：`mode` 常见值包括 `auto` / `pro` / `reasoning` / `deep research`；`model` 的可用值由上游 `perplexity-ai` SDK 与 Perplexity 服务端共同决定，可能随时间变化，如遇报错请根据错误信息调整。
-
 > 重要：本 MCP 不再支持 `messages[]` 入参；如果你的调用方仍传 `messages`，会返回工具级错误并提示改用 `query`。
+> 重要：本 MCP 不再支持 `mode` / `model` 入参；如果你的调用方仍传 `mode` / `model`，会返回工具级错误并提示移除该字段。
 
 ## 排错
 

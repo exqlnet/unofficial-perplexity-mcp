@@ -32,6 +32,8 @@ class TestTools(unittest.TestCase):
             props = schema.get("properties", {})
             self.assertIn("query", props)
             self.assertNotIn("messages", props)
+            self.assertNotIn("mode", props)
+            self.assertNotIn("model", props)
 
         search_props = tools_by_name["perplexity_search"]["inputSchema"].get("properties", {})
         self.assertNotIn("max_results", search_props)
@@ -42,6 +44,12 @@ class TestTools(unittest.TestCase):
         tools = list_tools()
         t = next(x for x in tools if x["name"] == "perplexity_research")
         self.assertIn("重型", t.get("title", "") + t.get("description", ""))
+
+    def test_tools_warn_about_frequency(self) -> None:
+        tools = list_tools()
+        for t in tools:
+            text = (t.get("title", "") or "") + (t.get("description", "") or "")
+            self.assertIn("避免频繁调用", text)
 
 
 if __name__ == "__main__":

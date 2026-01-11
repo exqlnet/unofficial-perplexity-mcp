@@ -91,35 +91,7 @@ class TestModeModel(unittest.TestCase):
         finally:
             tools_mod.call_perplexity_search = original  # type: ignore[assignment]
 
-    def test_override_mode_sets_default_model_when_pro(self) -> None:
-        calls = []
-
-        def fake_call(config, *, query, mode, sources=None, model=None, **kwargs):  # type: ignore[no-untyped-def]
-            calls.append({"mode": mode, "model": model, "query": query})
-            return PerplexityResult(answer="ok", raw={})
-
-        original = tools_mod.call_perplexity_search
-        tools_mod.call_perplexity_search = fake_call  # type: ignore[assignment]
-        try:
-            cfg = AppConfig(
-                cookies={
-                    "next-auth.csrf-token": "csrf",
-                    "next-auth.session-token": "session",
-                },
-                timeout_ms=300_000,
-            )
-            res = tools_mod.call_tool(
-                cfg,
-                "perplexity_reason",
-                {"query": "why", "mode": "pro"},
-            )
-            self.assertFalse(res.get("isError"))
-            self.assertEqual(calls[0]["mode"], "pro")
-            self.assertEqual(calls[0]["model"], "gpt-5.2")
-        finally:
-            tools_mod.call_perplexity_search = original  # type: ignore[assignment]
-
-    def test_invalid_mode_type_is_tool_error(self) -> None:
+    def test_mode_is_rejected(self) -> None:
         cfg = AppConfig(
             cookies={
                 "next-auth.csrf-token": "csrf",
@@ -130,7 +102,22 @@ class TestModeModel(unittest.TestCase):
         res = tools_mod.call_tool(
             cfg,
             "perplexity_ask",
-            {"query": "hi", "mode": 123},
+            {"query": "hi", "mode": "pro"},
+        )
+        self.assertTrue(res.get("isError"))
+
+    def test_model_is_rejected(self) -> None:
+        cfg = AppConfig(
+            cookies={
+                "next-auth.csrf-token": "csrf",
+                "next-auth.session-token": "session",
+            },
+            timeout_ms=300_000,
+        )
+        res = tools_mod.call_tool(
+            cfg,
+            "perplexity_ask",
+            {"query": "hi", "model": "gpt-5.2"},
         )
         self.assertTrue(res.get("isError"))
 
