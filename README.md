@@ -114,16 +114,22 @@
 
 ### perplexity_ask
 
-- 入参：`query`（字符串）
+- 入参：`query`（字符串），可选 `backend_uuid`
 - 行为：
   - 为避免调用方误传导致行为不可预测：本 MCP **已禁用外部 `mode` / `model` 入参**
   - 服务端会按内部默认策略选择模式（例如有 Cookies 时倾向使用 pro，并默认使用 `gpt-5.2`）
   - 请避免频繁调用；尽量将多个子问题合并到一次 query / 一次 perplexity_search 中查清楚
-- 出参：`content`（文本）+ `structuredContent.response`（文本）+ 可选 `structuredContent.chunks`
+- 出参：`content`（文本）+ `structuredContent.response`（文本）+ 可选 `structuredContent.chunks` + 可选 `structuredContent.backend_uuid`
+
+#### 续问（同一对话线程继续问）
+
+- 每次调用若上游返回 `backend_uuid`，本 MCP 会在 `structuredContent.backend_uuid` 回传。
+- 下一次调用时，把该值作为入参 `backend_uuid` 传回，即可让 Perplexity 以同一对话上下文续问。
+- 注意：该能力依赖网页端私有接口与服务端策略，`backend_uuid` 可能缺失、过期或被忽略；本项目不保证稳定。
 
 ### perplexity_research
 
-- 入参：`query`（字符串），可选 `strip_thinking`
+- 入参：`query`（字符串），可选 `backend_uuid`、`strip_thinking`
 - 行为：
   - 默认 deep research（专用语义）
   - 本 MCP 已禁用外部 `mode` / `model` 入参
@@ -131,14 +137,14 @@
 
 ### perplexity_reason
 
-- 入参：`query`（字符串），可选 `strip_thinking`
+- 入参：`query`（字符串），可选 `backend_uuid`、`strip_thinking`
 - 行为：
   - 默认 reasoning（专用语义）
   - 本 MCP 已禁用外部 `mode` / `model` 入参
 
 ### perplexity_search
 
-- 入参：`query`（字符串）
+- 入参：`query`（字符串），可选 `backend_uuid`
 - 行为：
   - 当前实现返回“回答文本”（并尽量在 `structuredContent.chunks` 附带结构化片段）
   - 本 MCP 已禁用外部 `mode` / `model` 入参；服务端会按内部默认策略选择模式

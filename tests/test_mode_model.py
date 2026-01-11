@@ -16,7 +16,7 @@ class TestModeModel(unittest.TestCase):
 
         def fake_call(config, *, query, mode, sources=None, model=None, **kwargs):  # type: ignore[no-untyped-def]
             calls.append({"mode": mode, "model": model, "query": query})
-            return PerplexityResult(answer="ok", raw={})
+            return PerplexityResult(answer="ok", raw={}, backend_uuid="b1")
 
         original = tools_mod.call_perplexity_search
         tools_mod.call_perplexity_search = fake_call  # type: ignore[assignment]
@@ -36,6 +36,7 @@ class TestModeModel(unittest.TestCase):
             self.assertFalse(res.get("isError"))
             self.assertEqual(calls[0]["mode"], "pro")
             self.assertEqual(calls[0]["model"], "gpt-5.2")
+            self.assertEqual(res.get("structuredContent", {}).get("backend_uuid"), "b1")
         finally:
             tools_mod.call_perplexity_search = original  # type: ignore[assignment]
 
@@ -44,7 +45,7 @@ class TestModeModel(unittest.TestCase):
 
         def fake_call(config, *, query, mode, sources=None, model=None, **kwargs):  # type: ignore[no-untyped-def]
             calls.append({"mode": mode, "model": model, "query": query})
-            return PerplexityResult(answer="ok", raw={})
+            return PerplexityResult(answer="ok", raw={}, backend_uuid="b2")
 
         original = tools_mod.call_perplexity_search
         tools_mod.call_perplexity_search = fake_call  # type: ignore[assignment]
@@ -60,6 +61,7 @@ class TestModeModel(unittest.TestCase):
             self.assertFalse(res.get("isError"))
             self.assertEqual(calls[0]["mode"], "pro")
             self.assertEqual(calls[0]["model"], "gpt-5.2")
+            self.assertEqual(res.get("structuredContent", {}).get("backend_uuid"), "b2")
         finally:
             tools_mod.call_perplexity_search = original  # type: ignore[assignment]
 
@@ -68,7 +70,7 @@ class TestModeModel(unittest.TestCase):
 
         def fake_call(config, *, query, mode, sources=None, model=None, **kwargs):  # type: ignore[no-untyped-def]
             calls.append({"mode": mode, "model": model, "query": query})
-            return PerplexityResult(answer="ok", raw={})
+            return PerplexityResult(answer="ok", raw={}, backend_uuid="b3")
 
         original = tools_mod.call_perplexity_search
         tools_mod.call_perplexity_search = fake_call  # type: ignore[assignment]
@@ -88,6 +90,7 @@ class TestModeModel(unittest.TestCase):
             self.assertFalse(res.get("isError"))
             self.assertEqual(calls[0]["mode"], "deep research")
             self.assertIsNone(calls[0]["model"])
+            self.assertEqual(res.get("structuredContent", {}).get("backend_uuid"), "b3")
         finally:
             tools_mod.call_perplexity_search = original  # type: ignore[assignment]
 
@@ -133,6 +136,36 @@ class TestModeModel(unittest.TestCase):
             cfg,
             "perplexity_ask",
             {"messages": [{"role": "user", "content": "hi"}]},
+        )
+        self.assertTrue(res.get("isError"))
+
+    def test_backend_uuid_is_rejected_when_empty(self) -> None:
+        cfg = AppConfig(
+            cookies={
+                "next-auth.csrf-token": "csrf",
+                "next-auth.session-token": "session",
+            },
+            timeout_ms=300_000,
+        )
+        res = tools_mod.call_tool(
+            cfg,
+            "perplexity_ask",
+            {"query": "hi", "backend_uuid": "   "},
+        )
+        self.assertTrue(res.get("isError"))
+
+    def test_backend_uuid_is_rejected_when_not_string(self) -> None:
+        cfg = AppConfig(
+            cookies={
+                "next-auth.csrf-token": "csrf",
+                "next-auth.session-token": "session",
+            },
+            timeout_ms=300_000,
+        )
+        res = tools_mod.call_tool(
+            cfg,
+            "perplexity_ask",
+            {"query": "hi", "backend_uuid": 123},
         )
         self.assertTrue(res.get("isError"))
 

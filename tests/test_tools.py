@@ -31,6 +31,7 @@ class TestTools(unittest.TestCase):
             schema = tools_by_name[name]["inputSchema"]
             props = schema.get("properties", {})
             self.assertIn("query", props)
+            self.assertIn("backend_uuid", props)
             self.assertNotIn("messages", props)
             self.assertNotIn("mode", props)
             self.assertNotIn("model", props)

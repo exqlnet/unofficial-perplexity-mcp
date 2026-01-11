@@ -25,6 +25,10 @@ class ToolDef:
 
 def list_tools() -> List[JsonObject]:
     usage_hint = "请避免频繁调用；尽量将多个子问题合并到一次 query / 一次 perplexity_search 中查清楚。"
+    backend_uuid_desc = (
+        "续问用的会话标识。通常应直接使用上一轮工具返回的 structuredContent.backend_uuid；"
+        "若不提供则视为新对话。"
+    )
     tools: List[ToolDef] = [
         ToolDef(
             name="perplexity_ask",
@@ -34,6 +38,7 @@ def list_tools() -> List[JsonObject]:
                 "type": "object",
                 "properties": {
                     "query": {"type": "string"},
+                    "backend_uuid": {"type": "string", "description": backend_uuid_desc},
                 },
                 "required": ["query"],
                 "additionalProperties": True,
@@ -48,6 +53,7 @@ def list_tools() -> List[JsonObject]:
                 "type": "object",
                 "properties": {
                     "query": {"type": "string"},
+                    "backend_uuid": {"type": "string", "description": backend_uuid_desc},
                     "strip_thinking": {"type": "boolean"},
                 },
                 "required": ["query"],
@@ -63,6 +69,7 @@ def list_tools() -> List[JsonObject]:
                 "type": "object",
                 "properties": {
                     "query": {"type": "string"},
+                    "backend_uuid": {"type": "string", "description": backend_uuid_desc},
                     "strip_thinking": {"type": "boolean"},
                 },
                 "required": ["query"],
@@ -78,6 +85,7 @@ def list_tools() -> List[JsonObject]:
                 "type": "object",
                 "properties": {
                     "query": {"type": "string"},
+                    "backend_uuid": {"type": "string", "description": backend_uuid_desc},
                 },
                 "required": ["query"],
                 "additionalProperties": True,
@@ -116,6 +124,17 @@ def _read_required_query(arguments: Mapping[str, Any]) -> Tuple[Optional[str], O
     if not isinstance(query, str) or not query.strip():
         return None, "参数错误：query 必须是非空字符串"
     return query.strip(), None
+
+
+def _read_optional_backend_uuid(arguments: Mapping[str, Any]) -> Tuple[Optional[str], Optional[str]]:
+    if "backend_uuid" not in arguments:
+        return None, None
+    backend_uuid = arguments.get("backend_uuid")
+    if not isinstance(backend_uuid, str):
+        return None, "参数错误：backend_uuid 必须是字符串（可选）"
+    if not backend_uuid.strip():
+        return None, "参数错误：backend_uuid 不能为空字符串"
+    return backend_uuid.strip(), None
 
 
 def _cookies_provided(config: AppConfig) -> bool:
@@ -161,6 +180,9 @@ def call_tool(config: AppConfig, name: str, arguments: Mapping[str, Any]) -> Jso
             return _tool_result_text("参数错误：已禁用 model 入参，请移除该字段并使用默认策略", is_error=True)
 
         effective_mode, effective_model = _resolve_effective_mode_model(config, name)
+        backend_uuid, backend_uuid_err = _read_optional_backend_uuid(arguments)
+        if backend_uuid_err:
+            return _tool_result_text(backend_uuid_err, is_error=True)
 
         if name == "perplexity_ask":
             query, query_err = _read_required_query(arguments)
@@ -172,10 +194,13 @@ def call_tool(config: AppConfig, name: str, arguments: Mapping[str, Any]) -> Jso
                 mode=effective_mode or "auto",
                 model=effective_model,
                 sources=["web"],
+                backend_uuid=backend_uuid,
             )
             structured: JsonObject = {"response": resp.answer}
             if resp.chunks is not None:
                 structured["chunks"] = resp.chunks
+            if resp.backend_uuid:
+                structured["backend_uuid"] = resp.backend_uuid
             return _tool_result_text(resp.answer, structured=structured)
 
         if name == "perplexity_research":
@@ -189,11 +214,14 @@ def call_tool(config: AppConfig, name: str, arguments: Mapping[str, Any]) -> Jso
                 mode=effective_mode or "deep research",
                 model=effective_model,
                 sources=["web"],
+                backend_uuid=backend_uuid,
             )
             text = strip_thinking_tokens(resp.answer) if strip else resp.answer
             structured: JsonObject = {"response": text}
             if resp.chunks is not None:
                 structured["chunks"] = resp.chunks
+            if resp.backend_uuid:
+                structured["backend_uuid"] = resp.backend_uuid
             return _tool_result_text(text, structured=structured)
 
         if name == "perplexity_reason":
@@ -207,11 +235,14 @@ def call_tool(config: AppConfig, name: str, arguments: Mapping[str, Any]) -> Jso
                 mode=effective_mode or "reasoning",
                 model=effective_model,
                 sources=["web"],
+                backend_uuid=backend_uuid,
             )
             text = strip_thinking_tokens(resp.answer) if strip else resp.answer
             structured = {"response": text}
             if resp.chunks is not None:
                 structured["chunks"] = resp.chunks
+            if resp.backend_uuid:
+                structured["backend_uuid"] = resp.backend_uuid
             return _tool_result_text(text, structured=structured)
 
         if name == "perplexity_search":
@@ -224,10 +255,13 @@ def call_tool(config: AppConfig, name: str, arguments: Mapping[str, Any]) -> Jso
                 mode=effective_mode or "auto",
                 model=effective_model,
                 sources=["web"],
+                backend_uuid=backend_uuid,
             )
             structured = {"results": resp.answer}
             if resp.chunks is not None:
                 structured["chunks"] = resp.chunks
+            if resp.backend_uuid:
+                structured["backend_uuid"] = resp.backend_uuid
             return _tool_result_text(resp.answer, structured=structured)
 
         return _tool_result_text(f"工具不存在：{name}", is_error=True)

@@ -44,6 +44,7 @@ class PerplexityResult:
     answer: str
     raw: Mapping[str, Any]
     chunks: Optional[List[Any]] = None
+    backend_uuid: Optional[str] = None
 
 
 def _extract_answer(payload: Mapping[str, Any]) -> Tuple[str, Optional[List[Any]]]:
@@ -56,6 +57,13 @@ def _extract_answer(payload: Mapping[str, Any]) -> Tuple[str, Optional[List[Any]
     return "", None
 
 
+def _extract_backend_uuid(payload: Mapping[str, Any]) -> Optional[str]:
+    backend_uuid = payload.get("backend_uuid")
+    if isinstance(backend_uuid, str) and backend_uuid.strip():
+        return backend_uuid.strip()
+    return None
+
+
 def call_perplexity_search(
     config: AppConfig,
     *,
@@ -65,6 +73,7 @@ def call_perplexity_search(
     model: Optional[str] = None,
     language: str = "en-US",
     incognito: bool = False,
+    backend_uuid: Optional[str] = None,
 ) -> PerplexityResult:
     """
     调用非官方 SDK 的 search，返回 answer 与 raw payload。
@@ -78,6 +87,9 @@ def call_perplexity_search(
 
     try:
         client = perplexity.Client(dict(config.cookies))
+        follow_up = None
+        if isinstance(backend_uuid, str) and backend_uuid.strip():
+            follow_up = {"backend_uuid": backend_uuid.strip(), "attachments": []}
         payload = client.search(
             query,
             mode=mode,
@@ -86,7 +98,7 @@ def call_perplexity_search(
             files={},
             stream=False,
             language=language,
-            follow_up=None,
+            follow_up=follow_up,
             incognito=incognito,
         )
     except Exception as exc:  # noqa: BLE001
@@ -96,6 +108,7 @@ def call_perplexity_search(
         raise PerplexityCallError("Perplexity 返回不是对象，无法解析")
 
     answer, chunks = _extract_answer(payload)
+    extracted_backend_uuid = _extract_backend_uuid(payload)
     if not answer:
         # 兜底：某些情况下 SDK 可能只返回 text/其他字段
         fallback = payload.get("text")
@@ -104,4 +117,4 @@ def call_perplexity_search(
         else:
             answer = "未从 Perplexity 响应中解析出 answer"
 
-    return PerplexityResult(answer=answer, chunks=chunks, raw=payload)
+    return PerplexityResult(answer=answer, chunks=chunks, raw=payload, backend_uuid=extracted_backend_uuid)
