@@ -17,6 +17,9 @@ build/
 
 uv.lock
 
+# OpenSpec（本地协作规范，不纳入公开仓库）
+openspec/
+
 node_modules/
 npm-debug.log*
 .npm-cache/
