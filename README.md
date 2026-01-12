@@ -20,7 +20,7 @@
 - 非官方 SDK 依赖：
   - 默认通过 `pyproject.toml` 里的 **git pin 依赖**安装（见 `perplexity-api @ git+https://...@<commit>`）
   - 因此运行环境通常需要可用的 `git` 与网络访问（受限网络环境可考虑自行改为 vendoring）
-- 你已在浏览器登录 Perplexity，并能获取 Cookies
+- （可选）你已在浏览器登录 Perplexity，并能获取 Cookies（提供后通常更稳定；未提供时可能走匿名访问/自动回退，取决于 Perplexity 侧策略）
 
 > 重要：STDIO 模式下 stdout 只能输出 MCP 协议消息。本项目所有日志都输出到 stderr。建议使用 `uv -q` 并设置 `UV_NO_PROGRESS=1` 来尽量抑制 uv 自身输出。
 
@@ -40,6 +40,8 @@
 
 - `PERPLEXITY_CSRF_TOKEN`：对应 `next-auth.csrf-token`
 - `PERPLEXITY_SESSION_TOKEN`：对应 `next-auth.session-token`
+
+如果上述变量缺失或为空，服务端会自动生成随机占位值用于满足上游 SDK 的参数形态（不会写入 stdout/stderr）。此时是否能成功调用取决于 Perplexity 是否允许匿名访问及其回退策略，本项目不做稳定性保证。
 
 注意：不要把 token 写进仓库或公开渠道；建议通过本机环境变量或密钥管理注入。
 

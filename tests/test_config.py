@@ -10,9 +10,14 @@ from perplexity_unofficial_mcp.config import ConfigError, load_config, redact_en
 
 
 class TestConfig(unittest.TestCase):
-    def test_missing_cookies_raises(self) -> None:
-        with self.assertRaises(ConfigError):
-            load_config(env={})
+    def test_missing_tokens_generate_placeholders(self) -> None:
+        cfg = load_config(env={})
+        self.assertIn("next-auth.csrf-token", cfg.cookies)
+        self.assertIn("next-auth.session-token", cfg.cookies)
+        self.assertIsInstance(cfg.cookies["next-auth.csrf-token"], str)
+        self.assertIsInstance(cfg.cookies["next-auth.session-token"], str)
+        self.assertTrue(cfg.cookies["next-auth.csrf-token"].strip())
+        self.assertTrue(cfg.cookies["next-auth.session-token"].strip())
 
     def test_load_cookies_env_ok(self) -> None:
         cfg = load_config(
@@ -23,6 +28,15 @@ class TestConfig(unittest.TestCase):
         )
         self.assertIn("next-auth.session-token", cfg.cookies)
         self.assertEqual(cfg.timeout_ms, 300_000)
+
+    def test_partial_tokens_generate_placeholder_for_missing(self) -> None:
+        cfg = load_config(env={"PERPLEXITY_CSRF_TOKEN": "csrf"})
+        self.assertEqual(cfg.cookies["next-auth.csrf-token"], "csrf")
+        self.assertTrue(cfg.cookies["next-auth.session-token"].strip())
+
+        cfg2 = load_config(env={"PERPLEXITY_SESSION_TOKEN": "session"})
+        self.assertTrue(cfg2.cookies["next-auth.csrf-token"].strip())
+        self.assertEqual(cfg2.cookies["next-auth.session-token"], "session")
 
     def test_old_cookie_vars_raise_migration_hint(self) -> None:
         with self.assertRaises(ConfigError) as ctx:

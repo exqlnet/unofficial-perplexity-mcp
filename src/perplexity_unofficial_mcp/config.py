@@ -1,4 +1,5 @@
 import os
+import secrets
 from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Optional
 
@@ -25,28 +26,37 @@ def _parse_timeout_ms(value: Optional[str]) -> int:
     return timeout_ms
 
 
+def _random_placeholder_token() -> str:
+    """
+    生成随机占位 token。
+
+    说明：用于在未配置 Cookies token 时满足上游 SDK 对 cookies 形态的要求；
+    占位值不代表真实登录态，且不得写入 stdout/stderr。
+    """
+    return secrets.token_urlsafe(32)
+
+
 def _load_cookies_from_env(e: Mapping[str, str]) -> Dict[str, str]:
     csrf = (e.get("PERPLEXITY_CSRF_TOKEN") or "").strip()
     session = (e.get("PERPLEXITY_SESSION_TOKEN") or "").strip()
 
-    if csrf and session:
-        return {
-            "next-auth.csrf-token": csrf,
-            "next-auth.session-token": session,
-        }
-
     # 破坏性变更：旧入口已移除，但为了可诊断性，若检测到旧变量仍存在则给出迁移提示
-    if e.get("PERPLEXITY_COOKIES_JSON") or e.get("PERPLEXITY_COOKIES_PATH"):
+    # 兼容：若用户已开始迁移并提供了任意一个新变量，则不阻断启动（缺失项会由占位值补齐）。
+    if (e.get("PERPLEXITY_COOKIES_JSON") or e.get("PERPLEXITY_COOKIES_PATH")) and not (csrf or session):
         raise ConfigError(
             "已移除 PERPLEXITY_COOKIES_JSON / PERPLEXITY_COOKIES_PATH；请改用 "
             "PERPLEXITY_CSRF_TOKEN 与 PERPLEXITY_SESSION_TOKEN"
         )
 
-    if not csrf and not session:
-        raise ConfigError("必须提供 PERPLEXITY_CSRF_TOKEN 与 PERPLEXITY_SESSION_TOKEN")
     if not csrf:
-        raise ConfigError("缺少 PERPLEXITY_CSRF_TOKEN")
-    raise ConfigError("缺少 PERPLEXITY_SESSION_TOKEN")
+        csrf = _random_placeholder_token()
+    if not session:
+        session = _random_placeholder_token()
+
+    return {
+        "next-auth.csrf-token": csrf,
+        "next-auth.session-token": session,
+    }
 
 
 def load_config(env: Optional[Mapping[str, str]] = None) -> AppConfig:
@@ -54,8 +64,8 @@ def load_config(env: Optional[Mapping[str, str]] = None) -> AppConfig:
     从环境变量加载配置。
 
     已确认约定：
-    - PERPLEXITY_CSRF_TOKEN：必选
-    - PERPLEXITY_SESSION_TOKEN：必选
+    - PERPLEXITY_CSRF_TOKEN：可选（缺失/为空会自动生成占位值）
+    - PERPLEXITY_SESSION_TOKEN：可选（缺失/为空会自动生成占位值）
     - PERPLEXITY_TIMEOUT_MS：可选
     """
     e = dict(env) if env is not None else os.environ

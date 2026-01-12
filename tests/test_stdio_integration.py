@@ -58,6 +58,50 @@ class TestStdioIntegration(unittest.TestCase):
         self.assertNotIn("csrf", stderr)
         self.assertNotIn("session", stderr)
 
+    def test_initialize_and_tools_list_without_tokens(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        env = os.environ.copy()
+        env.pop("PERPLEXITY_CSRF_TOKEN", None)
+        env.pop("PERPLEXITY_SESSION_TOKEN", None)
+        env["PYTHONPATH"] = str(repo_root / "src")
+
+        proc = subprocess.Popen(
+            [sys.executable, "-m", "perplexity_unofficial_mcp.cli"],
+            cwd=str(repo_root),
+            env=env,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+
+        input_lines = "\n".join(
+            [
+                json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "initialize",
+                        "params": {"protocolVersion": "2024-11-05", "capabilities": {}},
+                    }
+                ),
+                json.dumps({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}),
+                "",
+            ]
+        )
+
+        stdout, _stderr = proc.communicate(input=input_lines, timeout=5)
+
+        stdout_lines = [line for line in stdout.splitlines() if line.strip()]
+        self.assertGreaterEqual(len(stdout_lines), 2)
+        parsed = [json.loads(line) for line in stdout_lines]
+        self.assertEqual(parsed[0]["jsonrpc"], "2.0")
+        self.assertEqual(parsed[0]["id"], 1)
+        self.assertIn("result", parsed[0])
+        self.assertEqual(parsed[1]["jsonrpc"], "2.0")
+        self.assertEqual(parsed[1]["id"], 2)
+        self.assertIn("tools", parsed[1]["result"])
+
     def test_unknown_tool_is_tool_error(self) -> None:
         repo_root = Path(__file__).resolve().parents[1]
         env = os.environ.copy()
